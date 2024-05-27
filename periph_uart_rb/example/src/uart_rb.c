@@ -109,6 +109,21 @@ int main(void)
 	Chip_UART_SetupFIFOS(UART_SELECTION, (UART_FCR_FIFO_EN | UART_FCR_TRG_LEV2));
 	Chip_UART_TXEnable(UART_SELECTION);
 
+	while (1) {
+		#define TASK_SIZE (15 * 1024)
+        volatile static uint32_t test[TASK_SIZE] = {0};
+        volatile static uint32_t i = 0;
+        char send[256] = {0};
+
+        test[i % TASK_SIZE] = i;
+        sprintf(send, "[%d]=%d\r\n", i % TASK_SIZE, test[i % TASK_SIZE]);
+        Chip_UART_SendBlocking(UART_SELECTION, send, strlen(send));
+
+        i++;
+        Board_LED_Toggle(0);
+	}
+	return 0;
+
 	/* Before using the ring buffers, initialize them using the ring
 	   buffer init function */
 	RingBuffer_Init(&rxring, rxbuff, 1, UART_RRB_SIZE);

@@ -339,11 +339,11 @@ void Board_UART_Init(LPC_USART_T *pUART)
 	if (pUART == LPC_UART0) {
 		/*
 		 * Initialize UART0 pin connect
-		 * P0.2: TXD
-		 * P0.3: RXD
+		 * P0.0: TXD
+		 * P0.1: RXD
 		 */
-		Chip_IOCON_PinMuxSet(LPC_IOCON, 0, 2, (IOCON_FUNC1 | IOCON_MODE_INACT));
-		Chip_IOCON_PinMuxSet(LPC_IOCON, 0, 3, (IOCON_FUNC1 | IOCON_MODE_INACT));
+		Chip_IOCON_PinMuxSet(LPC_IOCON, 0, 0, (IOCON_FUNC4 | IOCON_MODE_INACT));
+		Chip_IOCON_PinMuxSet(LPC_IOCON, 0, 1, (IOCON_FUNC4 | IOCON_MODE_INACT));
 	}
 	else if (pUART == LPC_UART2) {
 		/* Initialize UART2 pin connect */
@@ -398,8 +398,8 @@ void Board_UARTPutSTR(char *str)
 }
 
 #define MAXLEDS 2
-static const uint8_t ledports[MAXLEDS] = {2, 2};
-static const uint8_t ledpins[MAXLEDS] = {26, 27};
+static const uint8_t ledports[MAXLEDS] = {5, 2};
+static const uint8_t ledpins[MAXLEDS] = {4, 27};
 
 /* Initializes board LED(s) */
 static void Board_LED_Init(void)

@@ -1,1 +1,4 @@
 /.metadata
+Debug
+*.launch
+/periph_uart_rb/.settings
