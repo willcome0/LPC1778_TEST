@@ -94,6 +94,12 @@ void HANDLER_NAME(void)
  */
 int main(void)
 {
+	SCB->VTOR = 0x48200;
+	__enable_irq();
+	__ISB();
+	__DSB();
+
+
 	uint8_t key;
 	int bytes;
 

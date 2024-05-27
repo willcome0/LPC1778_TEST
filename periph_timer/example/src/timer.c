@@ -29,72 +29,58 @@
  * this code.
  */
 
+#include "chip.h"
 #include "board.h"
-#include <stdio.h>
+#include "string.h"
 
 /*****************************************************************************
  * Private types/enumerations/variables
  ****************************************************************************/
 
-#define TICKRATE_HZ1 (11)	/* 11 ticks per second */
+#if defined(BOARD_EA_DEVKIT_1788) || defined(BOARD_EA_DEVKIT_4088)
+#define UART_SELECTION 	LPC_UART0
+#define IRQ_SELECTION 	UART0_IRQn
+#define HANDLER_NAME 	UART0_IRQHandler
+#elif defined(BOARD_NXP_LPCXPRESSO_1769)
+#define UART_SELECTION 	LPC_UART3
+#define IRQ_SELECTION 	UART3_IRQn
+#define HANDLER_NAME 	UART3_IRQHandler
+#else
+#error No UART selected for undefined board
+#endif
 
-/*****************************************************************************
- * Public types/enumerations/variables
- ****************************************************************************/
 
-/*****************************************************************************
- * Private functions
- ****************************************************************************/
-
-/*****************************************************************************
- * Public functions
- ****************************************************************************/
-
-/**
- * @brief	Handle interrupt from 32-bit timer
- * @return	Nothing
- */
-void TIMER0_IRQHandler(void)
-{
-	if (Chip_TIMER_MatchPending(LPC_TIMER0, 1)) {
-		Chip_TIMER_ClearMatch(LPC_TIMER0, 1);
-		Board_LED_Toggle(0);
-	}
-}
 
 /**
- * @brief	main routine for blinky example
- * @return	Function should not exit.
+ * @brief	Main UART program body
+ * @return	Always returns 1
  */
 int main(void)
 {
-	uint32_t timerFreq;
-
-	/* Generic Initialization */
 	SystemCoreClockUpdate();
 	Board_Init();
+	Board_UART_Init(UART_SELECTION);
+	Board_LED_Set(0, false);
 
-	/* Enable timer 1 clock */
-	Chip_TIMER_Init(LPC_TIMER0);
+	/* Setup UART for 115.2K8N1 */
+	Chip_UART_Init(UART_SELECTION);
+	Chip_UART_SetBaud(UART_SELECTION, 115200);
+	Chip_UART_ConfigData(UART_SELECTION, (UART_LCR_WLEN8 | UART_LCR_SBS_1BIT));
+	Chip_UART_SetupFIFOS(UART_SELECTION, (UART_FCR_FIFO_EN | UART_FCR_TRG_LEV2));
+	Chip_UART_TXEnable(UART_SELECTION);
 
-	/* Timer rate is system clock rate */
-	timerFreq = Chip_Clock_GetSystemClockRate();
+	char send[] = "BL Begin.\r\n ";
+	Chip_UART_SendBlocking(UART_SELECTION, send, sizeof(send));
 
-	/* Timer setup for match and interrupt at TICKRATE_HZ */
-	Chip_TIMER_Reset(LPC_TIMER0);
-	Chip_TIMER_MatchEnableInt(LPC_TIMER0, 1);
-	Chip_TIMER_SetMatch(LPC_TIMER0, 1, (timerFreq / TICKRATE_HZ1));
-	Chip_TIMER_ResetOnMatchEnable(LPC_TIMER0, 1);
-	Chip_TIMER_Enable(LPC_TIMER0);
+#define APP_ADDR (0x48200)
+	__disable_irq();
+	__set_MSP(*(__IO uint32_t *)APP_ADDR);
+	__set_PSP(*(__IO uint32_t *)APP_ADDR);
+	typedef void (*p_function)(void);
+	unsigned int jump_addr = *(volatile unsigned int *)(APP_ADDR + 4);
+	p_function JumpToApplication = (p_function)jump_addr;
+	JumpToApplication();
 
-	/* Enable timer interrupt */
-	NVIC_ClearPendingIRQ(TIMER0_IRQn);
-	NVIC_EnableIRQ(TIMER0_IRQn);
-
-	/* LEDs toggle in interrupt handlers */
-	while (1) {
-		__WFI();
-	}
 
 	return 0;
 }
